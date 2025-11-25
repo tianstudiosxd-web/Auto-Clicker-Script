@@ -10,7 +10,6 @@ local autoClickerEnabled = false
 local clickSpeed = 1
 local isRunning = true
 local clickConnection
-local clickPosition = Vector2.new(0, 0)
 
 -- Buat ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -214,17 +213,6 @@ minFrameIcon.TextSize = 16
 minFrameIcon.Font = Enum.Font.GothamBold
 minFrameIcon.Parent = minimizedFrame
 
--- ================ INVISIBLE CURSOR FRAME (TANPA VISUAL HIJAU & DOT PUTIH) ================
-local cursorFrame = Instance.new("Frame")
-cursorFrame.Name = "CursorFrame"
-cursorFrame.Size = UDim2.new(0, 25, 0, 25)
-cursorFrame.Position = UDim2.new(0.5, -12.5, 0.5, -12.5)
-cursorFrame.BackgroundTransparency = 1 -- TRANSPARAN PENUH
-cursorFrame.BorderSizePixel = 0
-cursorFrame.Visible = false
-cursorFrame.ZIndex = 10
-cursorFrame.Parent = screenGui
-
 -- Dragging Functionality untuk Main Frame
 local dragging, dragInput, dragStart, startPos
 
@@ -267,7 +255,7 @@ local function updateMinDrag(input)
     minimizedFrame.Position = UDim2.new(minStartPos.X.Scale, minStartPos.X.Offset + delta.X, minStartPos.Y.Scale, minStartPos.Y.Offset + delta.Y)
 end
 
-minimizedFrame.InputBegan:Connect(function(input)
+minFrameButton.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         minDragging = true
         minDragStart = input.Position
@@ -281,7 +269,7 @@ minimizedFrame.InputBegan:Connect(function(input)
     end
 end)
 
-minimizedFrame.InputChanged:Connect(function(input)
+minFrameButton.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         minDragInput = input
     end
@@ -293,63 +281,17 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Dragging Functionality untuk Cursor (INVISIBLE)
-local cursorDragging, cursorDragInput, cursorDragStart, cursorStartPos
-
-local function updateCursorDrag(input)
-    local delta = input.Position - cursorDragStart
-    local newPos = UDim2.new(
-        cursorStartPos.X.Scale, 
-        cursorStartPos.X.Offset + delta.X, 
-        cursorStartPos.Y.Scale, 
-        cursorStartPos.Y.Offset + delta.Y
-    )
-    cursorFrame.Position = newPos
-    
-    -- Update click position
-    local absPos = cursorFrame.AbsolutePosition
-    local absSize = cursorFrame.AbsoluteSize
-    clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
-end
-
-cursorFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        cursorDragging = true
-        cursorDragStart = input.Position
-        cursorStartPos = cursorFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                cursorDragging = false
-            end
-        end)
-    end
-end)
-
-cursorFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        cursorDragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == cursorDragInput and cursorDragging then
-        updateCursorDrag(input)
-    end
-end)
-
--- Fungsi Auto Clicker
+-- Fungsi Auto Clicker (Menggunakan posisi mouse asli)
 local function performClick()
-    -- Update posisi klik
-    local absPos = cursorFrame.AbsolutePosition
-    local absSize = cursorFrame.AbsoluteSize
-    clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
+    -- Ambil posisi mouse saat ini
+    local mouseX = mouse.X
+    local mouseY = mouse.Y
     
-    -- Simulasi klik menggunakan VirtualInputManager
+    -- Simulasi klik menggunakan VirtualInputManager pada posisi mouse
     pcall(function()
-        VirtualInputManager:SendMouseButtonEvent(clickPosition.X, clickPosition.Y, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(mouseX, mouseY, 0, true, game, 0)
         task.wait(0.01)
-        VirtualInputManager:SendMouseButtonEvent(clickPosition.X, clickPosition.Y, 0, false, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(mouseX, mouseY, 0, false, game, 0)
     end)
     
     -- Jika VirtualInputManager tidak tersedia, gunakan mouse1click
@@ -408,26 +350,15 @@ toggleBtn.MouseButton1Click:Connect(function()
     clickSpeed = speedValue
     
     if autoClickerEnabled then
-        -- Tampilkan cursor (invisible tapi tetap bisa di-drag)
-        cursorFrame.Visible = true
-        
         -- Update UI
         toggleBtn.Text = "ON"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 120)
         statusLabel.Text = "Status: ON (" .. clickSpeed .. " CPS)"
         statusLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
         
-        -- Update posisi klik awal
-        local absPos = cursorFrame.AbsolutePosition
-        local absSize = cursorFrame.AbsoluteSize
-        clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
-        
         -- Mulai auto clicker
         startAutoClicker()
     else
-        -- Sembunyikan cursor
-        cursorFrame.Visible = false
-        
         -- Update UI
         toggleBtn.Text = "OFF"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
@@ -459,8 +390,11 @@ end)
 
 -- Restore from Minimize
 minFrameButton.MouseButton1Click:Connect(function()
-    minimizedFrame.Visible = false
-    mainFrame.Visible = true
+    -- Hanya restore jika tidak sedang drag
+    if not minDragging then
+        minimizedFrame.Visible = false
+        mainFrame.Visible = true
+    end
 end)
 
 -- Hover Effects
