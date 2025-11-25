@@ -42,18 +42,6 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 
--- Shadow Effect
-local shadow = Instance.new("ImageLabel")
-shadow.Name = "Shadow"
-shadow.BackgroundTransparency = 1
-shadow.Position = UDim2.new(0, -15, 0, -15)
-shadow.Size = UDim2.new(1, 30, 1, 30)
-shadow.ZIndex = 0
-shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.5
-shadow.Parent = mainFrame
-
 -- Top Bar
 local topBar = Instance.new("Frame")
 topBar.Name = "TopBar"
@@ -96,7 +84,7 @@ minimizeBtn.Text = ""
 minimizeBtn.Parent = topBar
 
 local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 0)
+minCorner.CornerRadius = UDim.new(0, 4)
 minCorner.Parent = minimizeBtn
 
 local minIcon = Instance.new("TextLabel")
@@ -118,7 +106,7 @@ closeBtn.Text = ""
 closeBtn.Parent = topBar
 
 local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 0)
+closeCorner.CornerRadius = UDim.new(0, 4)
 closeCorner.Parent = closeBtn
 
 local closeIcon = Instance.new("TextLabel")
@@ -196,74 +184,57 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleBtn
 
--- Minimize Frame (kotak kecil)
-local minimizedFrame = Instance.new("TextButton")
+-- Minimize Frame (kotak kecil dengan text "AC")
+local minimizedFrame = Instance.new("Frame")
 minimizedFrame.Name = "MinimizedFrame"
-minimizedFrame.Size = UDim2.new(0, 40, 0, 40)
-minimizedFrame.Position = UDim2.new(0.5, -20, 0.5, -20)
+minimizedFrame.Size = UDim2.new(0, 50, 0, 50)
+minimizedFrame.Position = UDim2.new(0, 10, 0, 10)
 minimizedFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-minimizedFrame.Text = ""
+minimizedFrame.BorderSizePixel = 0
 minimizedFrame.Visible = false
 minimizedFrame.Parent = screenGui
 
 local minFrameCorner = Instance.new("UICorner")
-minFrameCorner.CornerRadius = UDim.new(0, 0)
+minFrameCorner.CornerRadius = UDim.new(0, 8)
 minFrameCorner.Parent = minimizedFrame
+
+local minFrameButton = Instance.new("TextButton")
+minFrameButton.Name = "MinFrameButton"
+minFrameButton.Size = UDim2.new(1, 0, 1, 0)
+minFrameButton.BackgroundTransparency = 1
+minFrameButton.Text = ""
+minFrameButton.Parent = minimizedFrame
 
 local minFrameIcon = Instance.new("TextLabel")
 minFrameIcon.Size = UDim2.new(1, 0, 1, 0)
 minFrameIcon.BackgroundTransparency = 1
-minFrameIcon.Text = "+"
+minFrameIcon.Text = "AC"
 minFrameIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-minFrameIcon.TextSize = 24
+minFrameIcon.TextSize = 16
 minFrameIcon.Font = Enum.Font.GothamBold
 minFrameIcon.Parent = minimizedFrame
 
--- ================ DRAGGABLE CURSOR ICON ================
+-- ================ DRAGGABLE CURSOR ICON (DIPERKECIL) ================
 local cursorFrame = Instance.new("Frame")
 cursorFrame.Name = "CursorFrame"
-cursorFrame.Size = UDim2.new(0, 50, 0, 50)
-cursorFrame.Position = UDim2.new(0.5, -25, 0.5, -25)
-cursorFrame.BackgroundTransparency = 1
+cursorFrame.Size = UDim2.new(0, 25, 0, 25)
+cursorFrame.Position = UDim2.new(0.5, -12.5, 0.5, -12.5)
+cursorFrame.BackgroundColor3 = Color3.fromRGB(80, 255, 120)
+cursorFrame.BorderSizePixel = 0
 cursorFrame.Visible = false
 cursorFrame.ZIndex = 10
 cursorFrame.Parent = screenGui
 
--- Cursor Icon (Bentuk Kursor)
-local cursorIcon = Instance.new("ImageLabel")
-cursorIcon.Name = "CursorIcon"
-cursorIcon.Size = UDim2.new(0, 32, 0, 32)
-cursorIcon.Position = UDim2.new(0.5, -16, 0.5, -16)
-cursorIcon.BackgroundTransparency = 1
-cursorIcon.Image = "rbxassetid://2833720882" -- Icon cursor default Roblox
-cursorIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-cursorIcon.ZIndex = 11
-cursorIcon.Parent = cursorFrame
+-- Corner untuk Cursor Frame (tidak lancip)
+local cursorCorner = Instance.new("UICorner")
+cursorCorner.CornerRadius = UDim.new(0, 8)
+cursorCorner.Parent = cursorFrame
 
--- Glow Effect untuk Cursor
-local cursorGlow = Instance.new("ImageLabel")
-cursorGlow.Name = "Glow"
-cursorGlow.Size = UDim2.new(1.5, 0, 1.5, 0)
-cursorGlow.Position = UDim2.new(-0.25, 0, -0.25, 0)
-cursorGlow.BackgroundTransparency = 1
-cursorGlow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-cursorGlow.ImageColor3 = Color3.fromRGB(80, 255, 120)
-cursorGlow.ImageTransparency = 0.5
-cursorGlow.ZIndex = 10
-cursorGlow.Parent = cursorFrame
-
--- Animasi Glow Pulsing
-local glowTween = TweenService:Create(cursorGlow, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-    ImageTransparency = 0.8,
-    Size = UDim2.new(2, 0, 2, 0),
-    Position = UDim2.new(-0.5, 0, -0.5, 0)
-})
-
--- Click Indicator
+-- Click Indicator (tanpa animasi kompleks)
 local clickIndicator = Instance.new("Frame")
 clickIndicator.Name = "ClickIndicator"
-clickIndicator.Size = UDim2.new(0, 10, 0, 10)
-clickIndicator.Position = UDim2.new(0.5, -5, 0.5, -5)
+clickIndicator.Size = UDim2.new(0, 8, 0, 8)
+clickIndicator.Position = UDim2.new(0.5, -4, 0.5, -4)
 clickIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 clickIndicator.BackgroundTransparency = 1
 clickIndicator.ZIndex = 12
@@ -304,6 +275,40 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         updateDrag(input)
+    end
+end)
+
+-- Dragging Functionality untuk Minimized Frame
+local minDragging, minDragInput, minDragStart, minStartPos
+
+local function updateMinDrag(input)
+    local delta = input.Position - minDragStart
+    minimizedFrame.Position = UDim2.new(minStartPos.X.Scale, minStartPos.X.Offset + delta.X, minStartPos.Y.Scale, minStartPos.Y.Offset + delta.Y)
+end
+
+minimizedFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        minDragging = true
+        minDragStart = input.Position
+        minStartPos = minimizedFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                minDragging = false
+            end
+        end)
+    end
+end)
+
+minimizedFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        minDragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == minDragInput and minDragging then
+        updateMinDrag(input)
     end
 end)
 
@@ -352,21 +357,14 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Fungsi untuk show click effect
+-- Fungsi untuk show click effect (sederhana tanpa animasi)
 local function showClickEffect()
     clickIndicator.BackgroundTransparency = 0
-    clickIndicator.Size = UDim2.new(0, 10, 0, 10)
-    clickIndicator.Position = UDim2.new(0.5, -5, 0.5, -5)
-    
-    local clickTween = TweenService:Create(clickIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 30, 0, 30),
-        Position = UDim2.new(0.5, -15, 0.5, -15)
-    })
-    clickTween:Play()
+    task.wait(0.05)
+    clickIndicator.BackgroundTransparency = 1
 end
 
--- Fungsi Auto Clicker yang lebih baik
+-- Fungsi Auto Clicker
 local function performClick()
     -- Update posisi klik
     local absPos = cursorFrame.AbsolutePosition
@@ -441,7 +439,6 @@ toggleBtn.MouseButton1Click:Connect(function()
     if autoClickerEnabled then
         -- Tampilkan cursor
         cursorFrame.Visible = true
-        glowTween:Play()
         
         -- Update UI
         toggleBtn.Text = "ON"
@@ -459,7 +456,6 @@ toggleBtn.MouseButton1Click:Connect(function()
     else
         -- Sembunyikan cursor
         cursorFrame.Visible = false
-        glowTween:Cancel()
         
         -- Update UI
         toggleBtn.Text = "OFF"
@@ -478,7 +474,6 @@ end)
 closeBtn.MouseButton1Click:Connect(function()
     isRunning = false
     autoClickerEnabled = false
-    glowTween:Cancel()
     if clickConnection then
         clickConnection:Disconnect()
     end
@@ -492,7 +487,7 @@ minimizeBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Restore from Minimize
-minimizedFrame.MouseButton1Click:Connect(function()
+minFrameButton.MouseButton1Click:Connect(function()
     minimizedFrame.Visible = false
     mainFrame.Visible = true
 end)
