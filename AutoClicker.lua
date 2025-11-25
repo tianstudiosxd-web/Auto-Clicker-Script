@@ -184,7 +184,7 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggleBtn
 
--- Minimize Frame (kotak kecil dengan text "AC")
+-- Minimize Frame (kotak kecil dengan text "AC" - BISA DI DRAG)
 local minimizedFrame = Instance.new("Frame")
 minimizedFrame.Name = "MinimizedFrame"
 minimizedFrame.Size = UDim2.new(0, 50, 0, 50)
@@ -214,35 +214,16 @@ minFrameIcon.TextSize = 16
 minFrameIcon.Font = Enum.Font.GothamBold
 minFrameIcon.Parent = minimizedFrame
 
--- ================ DRAGGABLE CURSOR ICON (DIPERKECIL) ================
+-- ================ INVISIBLE CURSOR FRAME (TANPA VISUAL HIJAU & DOT PUTIH) ================
 local cursorFrame = Instance.new("Frame")
 cursorFrame.Name = "CursorFrame"
 cursorFrame.Size = UDim2.new(0, 25, 0, 25)
 cursorFrame.Position = UDim2.new(0.5, -12.5, 0.5, -12.5)
-cursorFrame.BackgroundColor3 = Color3.fromRGB(80, 255, 120)
+cursorFrame.BackgroundTransparency = 1 -- TRANSPARAN PENUH
 cursorFrame.BorderSizePixel = 0
 cursorFrame.Visible = false
 cursorFrame.ZIndex = 10
 cursorFrame.Parent = screenGui
-
--- Corner untuk Cursor Frame (tidak lancip)
-local cursorCorner = Instance.new("UICorner")
-cursorCorner.CornerRadius = UDim.new(0, 8)
-cursorCorner.Parent = cursorFrame
-
--- Click Indicator (tanpa animasi kompleks)
-local clickIndicator = Instance.new("Frame")
-clickIndicator.Name = "ClickIndicator"
-clickIndicator.Size = UDim2.new(0, 8, 0, 8)
-clickIndicator.Position = UDim2.new(0.5, -4, 0.5, -4)
-clickIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-clickIndicator.BackgroundTransparency = 1
-clickIndicator.ZIndex = 12
-clickIndicator.Parent = cursorFrame
-
-local clickCorner = Instance.new("UICorner")
-clickCorner.CornerRadius = UDim.new(1, 0)
-clickCorner.Parent = clickIndicator
 
 -- Dragging Functionality untuk Main Frame
 local dragging, dragInput, dragStart, startPos
@@ -278,7 +259,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Dragging Functionality untuk Minimized Frame
+-- Dragging Functionality untuk Minimized Frame "AC"
 local minDragging, minDragInput, minDragStart, minStartPos
 
 local function updateMinDrag(input)
@@ -312,7 +293,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Dragging Functionality untuk Cursor
+-- Dragging Functionality untuk Cursor (INVISIBLE)
 local cursorDragging, cursorDragInput, cursorDragStart, cursorStartPos
 
 local function updateCursorDrag(input)
@@ -357,13 +338,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Fungsi untuk show click effect (sederhana tanpa animasi)
-local function showClickEffect()
-    clickIndicator.BackgroundTransparency = 0
-    task.wait(0.05)
-    clickIndicator.BackgroundTransparency = 1
-end
-
 -- Fungsi Auto Clicker
 local function performClick()
     -- Update posisi klik
@@ -382,9 +356,6 @@ local function performClick()
     if not pcall(function() return VirtualInputManager end) then
         mouse1click()
     end
-    
-    -- Show visual feedback
-    showClickEffect()
 end
 
 local function startAutoClicker()
@@ -437,7 +408,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     clickSpeed = speedValue
     
     if autoClickerEnabled then
-        -- Tampilkan cursor
+        -- Tampilkan cursor (invisible tapi tetap bisa di-drag)
         cursorFrame.Visible = true
         
         -- Update UI
