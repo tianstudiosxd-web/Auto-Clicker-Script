@@ -10,6 +10,7 @@ local autoClickerEnabled = false
 local clickSpeed = 1
 local isRunning = true
 local clickConnection
+local clickPosition = Vector2.new(0, 0)
 
 -- Buat ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -191,6 +192,7 @@ minimizedFrame.Position = UDim2.new(0, 10, 0, 10)
 minimizedFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 minimizedFrame.BorderSizePixel = 0
 minimizedFrame.Visible = false
+minimizedFrame.Active = true
 minimizedFrame.Parent = screenGui
 
 local minFrameCorner = Instance.new("UICorner")
@@ -202,6 +204,7 @@ minFrameButton.Name = "MinFrameButton"
 minFrameButton.Size = UDim2.new(1, 0, 1, 0)
 minFrameButton.BackgroundTransparency = 1
 minFrameButton.Text = ""
+minFrameButton.Active = false
 minFrameButton.Parent = minimizedFrame
 
 local minFrameIcon = Instance.new("TextLabel")
@@ -211,7 +214,20 @@ minFrameIcon.Text = "AC"
 minFrameIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
 minFrameIcon.TextSize = 16
 minFrameIcon.Font = Enum.Font.GothamBold
+minFrameIcon.Active = false
 minFrameIcon.Parent = minimizedFrame
+
+-- ================ INVISIBLE CURSOR FRAME (TANPA VISUAL HIJAU & DOT PUTIH) ================
+local cursorFrame = Instance.new("Frame")
+cursorFrame.Name = "CursorFrame"
+cursorFrame.Size = UDim2.new(0, 25, 0, 25)
+cursorFrame.Position = UDim2.new(0.5, -12.5, 0.5, -12.5)
+cursorFrame.BackgroundTransparency = 1
+cursorFrame.BorderSizePixel = 0
+cursorFrame.Visible = false
+cursorFrame.ZIndex = 10
+cursorFrame.Active = true
+cursorFrame.Parent = screenGui
 
 -- Dragging Functionality untuk Main Frame
 local dragging, dragInput, dragStart, startPos
@@ -247,51 +263,91 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Dragging Functionality untuk Minimized Frame "AC"
-local minDragging, minDragInput, minDragStart, minStartPos
+-- ================ DRAGGING UNTUK MINIMIZED FRAME "AC" (FIXED) ================
+local minDragging = false
+local minDragStart = nil
+local minFrameStartPos = nil
 
-local function updateMinDrag(input)
-    local delta = input.Position - minDragStart
-    minimizedFrame.Position = UDim2.new(minStartPos.X.Scale, minStartPos.X.Offset + delta.X, minStartPos.Y.Scale, minStartPos.Y.Offset + delta.Y)
-end
-
-minFrameButton.InputBegan:Connect(function(input)
+minimizedFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         minDragging = true
         minDragStart = input.Position
-        minStartPos = minimizedFrame.Position
+        minFrameStartPos = minimizedFrame.Position
         
-        input.Changed:Connect(function()
+        local connection
+        connection = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 minDragging = false
+                connection:Disconnect()
             end
         end)
     end
 end)
 
-minFrameButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        minDragInput = input
+UserInputService.InputChanged:Connect(function(input)
+    if minDragging and minDragStart and minFrameStartPos then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - minDragStart
+            minimizedFrame.Position = UDim2.new(
+                minFrameStartPos.X.Scale,
+                minFrameStartPos.X.Offset + delta.X,
+                minFrameStartPos.Y.Scale,
+                minFrameStartPos.Y.Offset + delta.Y
+            )
+        end
+    end
+end)
+
+-- ================ DRAGGING UNTUK CURSOR FRAME (FIXED - FOLLOW MOUSE) ================
+local cursorDragging = false
+local cursorDragOffset = Vector2.new(0, 0)
+
+cursorFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        cursorDragging = true
+        
+        -- Hitung offset dari posisi mouse ke center cursorFrame
+        local mousePos = input.Position
+        local frameCenter = cursorFrame.AbsolutePosition + (cursorFrame.AbsoluteSize / 2)
+        cursorDragOffset = frameCenter - mousePos
+        
+        local connection
+        connection = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                cursorDragging = false
+                connection:Disconnect()
+            end
+        end)
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == minDragInput and minDragging then
-        updateMinDrag(input)
+    if cursorDragging then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            -- Posisikan cursor frame mengikuti mouse dengan offset
+            local mousePos = input.Position + cursorDragOffset
+            cursorFrame.Position = UDim2.new(0, mousePos.X - cursorFrame.AbsoluteSize.X/2, 0, mousePos.Y - cursorFrame.AbsoluteSize.Y/2)
+            
+            -- Update click position
+            local absPos = cursorFrame.AbsolutePosition
+            local absSize = cursorFrame.AbsoluteSize
+            clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
+        end
     end
 end)
 
--- Fungsi Auto Clicker (Menggunakan posisi mouse asli)
+-- Fungsi Auto Clicker
 local function performClick()
-    -- Ambil posisi mouse saat ini
-    local mouseX = mouse.X
-    local mouseY = mouse.Y
+    -- Update posisi klik
+    local absPos = cursorFrame.AbsolutePosition
+    local absSize = cursorFrame.AbsoluteSize
+    clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
     
-    -- Simulasi klik menggunakan VirtualInputManager pada posisi mouse
+    -- Simulasi klik menggunakan VirtualInputManager
     pcall(function()
-        VirtualInputManager:SendMouseButtonEvent(mouseX, mouseY, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(clickPosition.X, clickPosition.Y, 0, true, game, 0)
         task.wait(0.01)
-        VirtualInputManager:SendMouseButtonEvent(mouseX, mouseY, 0, false, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(clickPosition.X, clickPosition.Y, 0, false, game, 0)
     end)
     
     -- Jika VirtualInputManager tidak tersedia, gunakan mouse1click
@@ -350,15 +406,30 @@ toggleBtn.MouseButton1Click:Connect(function()
     clickSpeed = speedValue
     
     if autoClickerEnabled then
+        -- Tampilkan cursor (invisible tapi tetap bisa di-drag)
+        cursorFrame.Visible = true
+        
+        -- Posisikan cursor frame di posisi mouse saat ini
+        local mouseLocation = UserInputService:GetMouseLocation()
+        cursorFrame.Position = UDim2.new(0, mouseLocation.X - cursorFrame.AbsoluteSize.X/2, 0, mouseLocation.Y - cursorFrame.AbsoluteSize.Y/2)
+        
         -- Update UI
         toggleBtn.Text = "ON"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 120)
         statusLabel.Text = "Status: ON (" .. clickSpeed .. " CPS)"
         statusLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
         
+        -- Update posisi klik awal
+        local absPos = cursorFrame.AbsolutePosition
+        local absSize = cursorFrame.AbsoluteSize
+        clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
+        
         -- Mulai auto clicker
         startAutoClicker()
     else
+        -- Sembunyikan cursor
+        cursorFrame.Visible = false
+        
         -- Update UI
         toggleBtn.Text = "OFF"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
@@ -390,11 +461,8 @@ end)
 
 -- Restore from Minimize
 minFrameButton.MouseButton1Click:Connect(function()
-    -- Hanya restore jika tidak sedang drag
-    if not minDragging then
-        minimizedFrame.Visible = false
-        mainFrame.Visible = true
-    end
+    minimizedFrame.Visible = false
+    mainFrame.Visible = true
 end)
 
 -- Hover Effects
