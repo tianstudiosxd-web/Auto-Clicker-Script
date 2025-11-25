@@ -1,6 +1,7 @@
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -9,7 +10,7 @@ local autoClickerEnabled = false
 local clickSpeed = 1
 local isRunning = true
 local clickConnection
-local cursorIndicator
+local clickPosition = Vector2.new(0, 0)
 
 -- Buat ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -218,134 +219,61 @@ minFrameIcon.TextSize = 24
 minFrameIcon.Font = Enum.Font.GothamBold
 minFrameIcon.Parent = minimizedFrame
 
--- Cursor Indicator (Penanda Kursor dengan Icon Kursor Asli)
+-- ================ DRAGGABLE CURSOR ICON ================
 local cursorFrame = Instance.new("Frame")
-cursorFrame.Name = "CursorIndicator"
-cursorFrame.Size = UDim2.new(0, 80, 0, 80)
+cursorFrame.Name = "CursorFrame"
+cursorFrame.Size = UDim2.new(0, 50, 0, 50)
+cursorFrame.Position = UDim2.new(0.5, -25, 0.5, -25)
 cursorFrame.BackgroundTransparency = 1
 cursorFrame.Visible = false
+cursorFrame.ZIndex = 10
 cursorFrame.Parent = screenGui
 
--- Outer Glow Circle (Efek Cahaya)
-local outerGlow = Instance.new("Frame")
-outerGlow.Name = "OuterGlow"
-outerGlow.Size = UDim2.new(0, 60, 0, 60)
-outerGlow.Position = UDim2.new(0, 10, 0, 10)
-outerGlow.BackgroundColor3 = Color3.fromRGB(80, 255, 120)
-outerGlow.BackgroundTransparency = 0.7
-outerGlow.BorderSizePixel = 0
-outerGlow.Parent = cursorFrame
-
-local glowCorner = Instance.new("UICorner")
-glowCorner.CornerRadius = UDim.new(1, 0)
-glowCorner.Parent = outerGlow
-
-local glowStroke = Instance.new("UIStroke")
-glowStroke.Color = Color3.fromRGB(80, 255, 120)
-glowStroke.Thickness = 3
-glowStroke.Transparency = 0.3
-glowStroke.Parent = outerGlow
-
--- Icon Kursor (Dibuat dengan Frame untuk membentuk pointer)
-local cursorIcon = Instance.new("Frame")
+-- Cursor Icon (Bentuk Kursor)
+local cursorIcon = Instance.new("ImageLabel")
 cursorIcon.Name = "CursorIcon"
-cursorIcon.Size = UDim2.new(0, 30, 0, 30)
-cursorIcon.Position = UDim2.new(0, 25, 0, 25)
+cursorIcon.Size = UDim2.new(0, 32, 0, 32)
+cursorIcon.Position = UDim2.new(0.5, -16, 0.5, -16)
 cursorIcon.BackgroundTransparency = 1
+cursorIcon.Image = "rbxassetid://2833720882" -- Icon cursor default Roblox
+cursorIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+cursorIcon.ZIndex = 11
 cursorIcon.Parent = cursorFrame
 
--- Bagian Pointer Kursor (Bentuk Segitiga/Arrow)
--- Badan Kursor (Vertikal)
-local cursorBody = Instance.new("Frame")
-cursorBody.Size = UDim2.new(0, 4, 0, 22)
-cursorBody.Position = UDim2.new(0, 0, 0, 0)
-cursorBody.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-cursorBody.BorderSizePixel = 0
-cursorBody.Rotation = 25
-cursorBody.Parent = cursorIcon
+-- Glow Effect untuk Cursor
+local cursorGlow = Instance.new("ImageLabel")
+cursorGlow.Name = "Glow"
+cursorGlow.Size = UDim2.new(1.5, 0, 1.5, 0)
+cursorGlow.Position = UDim2.new(-0.25, 0, -0.25, 0)
+cursorGlow.BackgroundTransparency = 1
+cursorGlow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+cursorGlow.ImageColor3 = Color3.fromRGB(80, 255, 120)
+cursorGlow.ImageTransparency = 0.5
+cursorGlow.ZIndex = 10
+cursorGlow.Parent = cursorFrame
 
-local bodyStroke = Instance.new("UIStroke")
-bodyStroke.Color = Color3.fromRGB(0, 0, 0)
-bodyStroke.Thickness = 1
-bodyStroke.Parent = cursorBody
+-- Animasi Glow Pulsing
+local glowTween = TweenService:Create(cursorGlow, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+    ImageTransparency = 0.8,
+    Size = UDim2.new(2, 0, 2, 0),
+    Position = UDim2.new(-0.5, 0, -0.5, 0)
+})
 
--- Ujung Kursor Kiri
-local cursorLeft = Instance.new("Frame")
-cursorLeft.Size = UDim2.new(0, 4, 0, 12)
-cursorLeft.Position = UDim2.new(0, 2, 0, 14)
-cursorLeft.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-cursorLeft.BorderSizePixel = 0
-cursorLeft.Rotation = -10
-cursorLeft.Parent = cursorIcon
-
-local leftStroke = Instance.new("UIStroke")
-leftStroke.Color = Color3.fromRGB(0, 0, 0)
-leftStroke.Thickness = 1
-leftStroke.Parent = cursorLeft
-
--- Ujung Kursor Kanan
-local cursorRight = Instance.new("Frame")
-cursorRight.Size = UDim2.new(0, 4, 0, 12)
-cursorRight.Position = UDim2.new(0, 8, 0, 10)
-cursorRight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-cursorRight.BorderSizePixel = 0
-cursorRight.Rotation = 55
-cursorRight.Parent = cursorIcon
-
-local rightStroke = Instance.new("UIStroke")
-rightStroke.Color = Color3.fromRGB(0, 0, 0)
-rightStroke.Thickness = 1
-rightStroke.Parent = cursorRight
-
--- Click Indicator (Lingkaran yang muncul saat klik)
+-- Click Indicator
 local clickIndicator = Instance.new("Frame")
 clickIndicator.Name = "ClickIndicator"
-clickIndicator.Size = UDim2.new(0, 15, 0, 15)
-clickIndicator.Position = UDim2.new(0, 32, 0, 32)
-clickIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 80)
+clickIndicator.Size = UDim2.new(0, 10, 0, 10)
+clickIndicator.Position = UDim2.new(0.5, -5, 0.5, -5)
+clickIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 clickIndicator.BackgroundTransparency = 1
-clickIndicator.BorderSizePixel = 0
+clickIndicator.ZIndex = 12
 clickIndicator.Parent = cursorFrame
 
 local clickCorner = Instance.new("UICorner")
 clickCorner.CornerRadius = UDim.new(1, 0)
 clickCorner.Parent = clickIndicator
 
-local clickStroke = Instance.new("UIStroke")
-clickStroke.Color = Color3.fromRGB(255, 255, 80)
-clickStroke.Thickness = 3
-clickStroke.Transparency = 1
-clickStroke.Parent = clickIndicator
-
--- Animasi Pulse untuk Glow
-local function startPulseAnimation()
-    game:GetService("RunService").RenderStepped:Connect(function()
-        if autoClickerEnabled then
-            local time = tick() * 3
-            local scale = 1 + math.sin(time) * 0.15
-            outerGlow.Size = UDim2.new(0, 60 * scale, 0, 60 * scale)
-            outerGlow.Position = UDim2.new(0, 10 + (60 - 60 * scale) / 2, 0, 10 + (60 - 60 * scale) / 2)
-            
-            -- Efek breathing pada transparency
-            glowStroke.Transparency = 0.3 + math.sin(time) * 0.2
-        end
-    end)
-end
-
--- Update Cursor Position
-local function updateCursorPosition()
-    game:GetService("RunService").RenderStepped:Connect(function()
-        if cursorFrame.Visible then
-            local mousePos = UserInputService:GetMouseLocation()
-            cursorFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
-        end
-    end)
-end
-
-updateCursorPosition()
-startPulseAnimation()
-
--- Dragging Functionality
+-- Dragging Functionality untuk Main Frame
 local dragging, dragInput, dragStart, startPos
 
 local function updateDrag(input)
@@ -379,34 +307,86 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Fungsi Auto Clicker
-local function performClick()
-    -- Visual feedback saat klik - animasi click indicator
+-- Dragging Functionality untuk Cursor
+local cursorDragging, cursorDragInput, cursorDragStart, cursorStartPos
+
+local function updateCursorDrag(input)
+    local delta = input.Position - cursorDragStart
+    local newPos = UDim2.new(
+        cursorStartPos.X.Scale, 
+        cursorStartPos.X.Offset + delta.X, 
+        cursorStartPos.Y.Scale, 
+        cursorStartPos.Y.Offset + delta.Y
+    )
+    cursorFrame.Position = newPos
+    
+    -- Update click position
+    local absPos = cursorFrame.AbsolutePosition
+    local absSize = cursorFrame.AbsoluteSize
+    clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
+end
+
+cursorFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        cursorDragging = true
+        cursorDragStart = input.Position
+        cursorStartPos = cursorFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                cursorDragging = false
+            end
+        end)
+    end
+end)
+
+cursorFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        cursorDragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == cursorDragInput and cursorDragging then
+        updateCursorDrag(input)
+    end
+end)
+
+-- Fungsi untuk show click effect
+local function showClickEffect()
     clickIndicator.BackgroundTransparency = 0
-    clickStroke.Transparency = 0
+    clickIndicator.Size = UDim2.new(0, 10, 0, 10)
+    clickIndicator.Position = UDim2.new(0.5, -5, 0.5, -5)
     
-    -- Animasi expand
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local expandTween = TweenService:Create(clickIndicator, tweenInfo, {
-        Size = UDim2.new(0, 35, 0, 35),
-        Position = UDim2.new(0, 22, 0, 22),
-        BackgroundTransparency = 1
+    local clickTween = TweenService:Create(clickIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(0.5, -15, 0.5, -15)
     })
-    local strokeTween = TweenService:Create(clickStroke, tweenInfo, {
-        Transparency = 1
-    })
+    clickTween:Play()
+end
+
+-- Fungsi Auto Clicker yang lebih baik
+local function performClick()
+    -- Update posisi klik
+    local absPos = cursorFrame.AbsolutePosition
+    local absSize = cursorFrame.AbsoluteSize
+    clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
     
-    expandTween:Play()
-    strokeTween:Play()
-    
-    expandTween.Completed:Connect(function()
-        clickIndicator.Size = UDim2.new(0, 15, 0, 15)
-        clickIndicator.Position = UDim2.new(0, 32, 0, 32)
-        clickIndicator.BackgroundTransparency = 1
-        clickStroke.Transparency = 1
+    -- Simulasi klik menggunakan VirtualInputManager
+    pcall(function()
+        VirtualInputManager:SendMouseButtonEvent(clickPosition.X, clickPosition.Y, 0, true, game, 0)
+        task.wait(0.01)
+        VirtualInputManager:SendMouseButtonEvent(clickPosition.X, clickPosition.Y, 0, false, game, 0)
     end)
     
-    mouse1click()
+    -- Jika VirtualInputManager tidak tersedia, gunakan mouse1click
+    if not pcall(function() return VirtualInputManager end) then
+        mouse1click()
+    end
+    
+    -- Show visual feedback
+    showClickEffect()
 end
 
 local function startAutoClicker()
@@ -419,7 +399,7 @@ local function startAutoClicker()
     clickConnection = game:GetService("RunService").Heartbeat:Connect(function()
         if autoClickerEnabled and isRunning then
             performClick()
-            wait(delay)
+            task.wait(delay)
         end
     end)
 end
@@ -431,7 +411,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     if not speedValue then
         statusLabel.Text = "Status: Invalid Input!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
-        wait(2)
+        task.wait(2)
         statusLabel.Text = "Status: OFF"
         statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
         return
@@ -440,7 +420,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     if speedValue > 1000 then
         statusLabel.Text = "Status: Max 1000!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
-        wait(2)
+        task.wait(2)
         statusLabel.Text = "Status: OFF"
         statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
         return
@@ -449,7 +429,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     if speedValue < 1 then
         statusLabel.Text = "Status: Min 1!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
-        wait(2)
+        task.wait(2)
         statusLabel.Text = "Status: OFF"
         statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
         return
@@ -459,18 +439,35 @@ toggleBtn.MouseButton1Click:Connect(function()
     clickSpeed = speedValue
     
     if autoClickerEnabled then
+        -- Tampilkan cursor
+        cursorFrame.Visible = true
+        glowTween:Play()
+        
+        -- Update UI
         toggleBtn.Text = "ON"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 120)
         statusLabel.Text = "Status: ON (" .. clickSpeed .. " CPS)"
         statusLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
-        cursorFrame.Visible = true -- Tampilkan cursor indicator
+        
+        -- Update posisi klik awal
+        local absPos = cursorFrame.AbsolutePosition
+        local absSize = cursorFrame.AbsoluteSize
+        clickPosition = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
+        
+        -- Mulai auto clicker
         startAutoClicker()
     else
+        -- Sembunyikan cursor
+        cursorFrame.Visible = false
+        glowTween:Cancel()
+        
+        -- Update UI
         toggleBtn.Text = "OFF"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
         statusLabel.Text = "Status: OFF"
         statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-        cursorFrame.Visible = false -- Sembunyikan cursor indicator
+        
+        -- Stop auto clicker
         if clickConnection then
             clickConnection:Disconnect()
         end
@@ -481,7 +478,7 @@ end)
 closeBtn.MouseButton1Click:Connect(function()
     isRunning = false
     autoClickerEnabled = false
-    cursorFrame.Visible = false -- Sembunyikan cursor saat close
+    glowTween:Cancel()
     if clickConnection then
         clickConnection:Disconnect()
     end
